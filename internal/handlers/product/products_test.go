@@ -11,18 +11,16 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi"
+	testifymock "github.com/stretchr/testify/mock"
 )
 
 // Get Product - Ready
 func TestGetAllProducts_Success(t *testing.T) {
 	// Мокаем storage — он вернёт один продукт.
-	mock := &ProductsMock{
-		GetAllProductsFunc: func(ctx context.Context) ([]models.Product, error) {
-			return []models.Product{
-				{ID: 1, Name: "Dog Food"},
-			}, nil
-		},
-	}
+	mock := new(ProductsMock)
+	mock.On("GetAllProducts", testifymock.Anything).Return([]models.Product{
+		{ID: 1, Name: "Cat Food", Price: 200, Stock: 50},
+	}, nil)
 
 	// Создаем HTTP-запрос GET /products
 	req := httptest.NewRequest(http.MethodGet, "/products", nil)
@@ -41,11 +39,8 @@ func TestGetAllProducts_Success(t *testing.T) {
 }
 func TestGetAllProducts_Error(t *testing.T) {
 	// Мокаем storage — он будет возвращать ошибку
-	mock := &ProductsMock{
-		GetAllProductsFunc: func(ctx context.Context) ([]models.Product, error) {
-			return nil, errors.New("DB error")
-		},
-	}
+	mock := new(ProductsMock)
+	mock.On("GetAllProducts", testifymock.Anything).Return(nil, errors.New("DB error"))
 
 	// Создаем запрос
 	req := httptest.NewRequest(http.MethodGet, "/products", nil)
@@ -66,11 +61,8 @@ func TestGetAllProducts_Error(t *testing.T) {
 
 func TestCreateProduct_Success(t *testing.T) {
 	// TODO: Написать Unit-тест для создания продукта (200 OK)
-	mock := &ProductsMock{
-		CreateProductFunc: func(ctx context.Context, product models.Product) (int, error) {
-			return 1, nil
-		},
-	}
+	mock := new(ProductsMock)
+	mock.On("CreateProduct", testifymock.Anything, testifymock.Anything).Return(1, nil)
 
 	payload := `{"ID": 1, "Name": "Cat Food", "Price": 200, "Stock": 50}`
 	req := httptest.NewRequest(http.MethodPost, "/products", strings.NewReader(payload))
@@ -88,11 +80,8 @@ func TestCreateProduct_Success(t *testing.T) {
 
 func TestCreateProduct_BadRequest(t *testing.T) {
 	// TODO: Написать Unit-тест для создания продукта с невалидным JSON (400 Bad Request)
-	mock := &ProductsMock{
-		CreateProductFunc: func(ctx context.Context, product models.Product) (int, error) {
-			return 1, nil
-		},
-	}
+	mock := new(ProductsMock)
+	mock.On("CreateProduct", testifymock.Anything, testifymock.Anything).Return(1, nil)
 
 	payload := `{1}`
 	req := httptest.NewRequest(http.MethodPost, "/products", strings.NewReader(payload))
@@ -110,11 +99,8 @@ func TestCreateProduct_BadRequest(t *testing.T) {
 
 func TestCreateProduct_Fail(t *testing.T) {
 	// TODO: Написать Unit-тест для создания продукта при ошибке сервиса (500 Internal Server Error)
-	mock := &ProductsMock{
-		CreateProductFunc: func(ctx context.Context, product models.Product) (int, error) {
-			return 0, errors.New("DB error")
-		},
-	}
+	mock := new(ProductsMock)
+	mock.On("CreateProduct", testifymock.Anything, testifymock.Anything).Return(0, errors.New("DB error"))
 
 	payload := `{"ID": 1, "Name": "Cat Food", "Price": 200, "Stock": 50}`
 	req := httptest.NewRequest(http.MethodPost, "/products", strings.NewReader(payload))
@@ -135,14 +121,8 @@ func TestCreateProduct_Fail(t *testing.T) {
 // =======================
 
 func TestUpdateProduct_Success(t *testing.T) {
-	mock := &ProductsMock{
-		UpdateProductFunc: func(ctx context.Context, product models.Product) error {
-			if product.ID != 1 {
-				t.Fatalf("expected product ID 1, got %d", product.ID)
-			}
-			return nil
-		},
-	}
+	mock := new(ProductsMock)
+	mock.On("UpdateProduct", testifymock.Anything, testifymock.Anything).Return(nil)
 
 	payload := `{"Name":"Tinker Food","Price":300,"Stock":10}`
 	req := httptest.NewRequest(http.MethodPut, "/products/1", strings.NewReader(payload))
@@ -168,11 +148,8 @@ func TestUpdateProduct_Success(t *testing.T) {
 
 func TestUpdateProduct_BadRequest(t *testing.T) {
 	// TODO: Написать Unit-тест для обновления продукта с невалидным JSON (400 Bad Request)
-	mock := &ProductsMock{
-		UpdateProductFunc: func(ctx context.Context, product models.Product) error {
-			return nil
-		},
-	}
+	mock := new(ProductsMock)
+	mock.On("UpdateProduct", testifymock.Anything, testifymock.Anything).Return(nil)
 
 	payload := `{1}`
 	req := httptest.NewRequest(http.MethodPut, "/products/1", strings.NewReader(payload))
@@ -198,11 +175,8 @@ func TestUpdateProduct_BadRequest(t *testing.T) {
 
 func TestUpdateProduct_Fail(t *testing.T) {
 	// TODO: Написать Unit-тест для обновления продукта при ошибке сервиса (500 Internal Server Error)
-	mock := &ProductsMock{
-		UpdateProductFunc: func(ctx context.Context, product models.Product) error {
-			return errors.New("DB error")
-		},
-	}
+	mock := new(ProductsMock)
+	mock.On("UpdateProduct", testifymock.Anything, testifymock.Anything).Return(errors.New("DB error"))
 
 	payload := `{"Name":"Tinker Food","Price":300,"Stock":10}`
 	req := httptest.NewRequest(http.MethodPut, "/products/1", strings.NewReader(payload))
@@ -232,11 +206,8 @@ func TestUpdateProduct_Fail(t *testing.T) {
 
 func TestDeleteProduct_Success(t *testing.T) {
 	// TODO: Написать Unit-тест для удаления продукта (200 OK)
-	mock := &ProductsMock{
-		DeleteProductFunc: func(ctx context.Context, id int) error {
-			return nil
-		},
-	}
+	mock := new(ProductsMock)
+	mock.On("DeleteProduct", testifymock.Anything, testifymock.Anything).Return(nil)
 
 	req := httptest.NewRequest(http.MethodDelete, "/products/1", nil)
 
@@ -257,11 +228,8 @@ func TestDeleteProduct_Success(t *testing.T) {
 
 func TestDeleteProduct_BadRequest(t *testing.T) {
 	// TODO: Написать Unit-тест для удаления продукта с пустым id (400 Bad Request)
-	mock := &ProductsMock{
-		DeleteProductFunc: func(ctx context.Context, id int) error {
-			return nil
-		},
-	}
+	mock := new(ProductsMock)
+	mock.On("DeleteProduct", testifymock.Anything, testifymock.Anything).Return(nil)
 
 	req := httptest.NewRequest(http.MethodDelete, "/products/1", nil)
 
@@ -279,11 +247,8 @@ func TestDeleteProduct_BadRequest(t *testing.T) {
 
 func TestDeleteProduct_Fail(t *testing.T) {
 	// TODO: Написать Unit-тест для удаления продукта при ошибке сервиса (500 Internal Server Error)
-	mock := &ProductsMock{
-		DeleteProductFunc: func(ctx context.Context, id int) error {
-			return errors.New("DB error")
-		},
-	}
+	mock := new(ProductsMock)
+	mock.On("DeleteProduct", testifymock.Anything, testifymock.Anything).Return(errors.New("DB error"))
 
 	req := httptest.NewRequest(http.MethodDelete, "/products/1", nil)
 

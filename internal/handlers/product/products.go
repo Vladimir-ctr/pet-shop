@@ -21,6 +21,8 @@ type Products interface {
 	UpdateProduct(ctx context.Context, product models.Product) error
 }
 
+//go:generate go run github.com/vektra/mockery/v2 --name=Products
+
 type Handler struct {
 	log     *slog.Logger
 	storage Products
