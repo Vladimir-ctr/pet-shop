@@ -7,7 +7,10 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/go-chi/chi"
 )
 
 // Get Product - Ready
@@ -63,14 +66,68 @@ func TestGetAllProducts_Error(t *testing.T) {
 
 func TestCreateProduct_Success(t *testing.T) {
 	// TODO: Написать Unit-тест для создания продукта (200 OK)
+	mock := &ProductsMock{
+		CreateProductFunc: func(ctx context.Context, product models.Product) (int, error) {
+			return 1, nil
+		},
+	}
+
+	payload := `{"ID": 1, "Name": "Cat Food", "Price": 200, "Stock": 50}`
+	req := httptest.NewRequest(http.MethodPost, "/products", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler := New(slog.Default(), mock)
+
+	handler.CreateProduct(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected 200, got %d", w.Code)
+	}
 }
 
 func TestCreateProduct_BadRequest(t *testing.T) {
 	// TODO: Написать Unit-тест для создания продукта с невалидным JSON (400 Bad Request)
+	mock := &ProductsMock{
+		CreateProductFunc: func(ctx context.Context, product models.Product) (int, error) {
+			return 1, nil
+		},
+	}
+
+	payload := `{1}`
+	req := httptest.NewRequest(http.MethodPost, "/products", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler := New(slog.Default(), mock)
+
+	handler.CreateProduct(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("Expected 400, got %d", w.Code)
+	}
 }
 
 func TestCreateProduct_Fail(t *testing.T) {
 	// TODO: Написать Unit-тест для создания продукта при ошибке сервиса (500 Internal Server Error)
+	mock := &ProductsMock{
+		CreateProductFunc: func(ctx context.Context, product models.Product) (int, error) {
+			return 0, errors.New("DB error")
+		},
+	}
+
+	payload := `{"ID": 1, "Name": "Cat Food", "Price": 200, "Stock": 50}`
+	req := httptest.NewRequest(http.MethodPost, "/products", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler := New(slog.Default(), mock)
+
+	handler.CreateProduct(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("Expected 500, got %d", w.Code)
+	}
 }
 
 // =======================
@@ -78,15 +135,95 @@ func TestCreateProduct_Fail(t *testing.T) {
 // =======================
 
 func TestUpdateProduct_Success(t *testing.T) {
-	// TODO: Написать Unit-тест для обновления продукта (200 OK)
+	mock := &ProductsMock{
+		UpdateProductFunc: func(ctx context.Context, product models.Product) error {
+			if product.ID != 1 {
+				t.Fatalf("expected product ID 1, got %d", product.ID)
+			}
+			return nil
+		},
+	}
+
+	payload := `{"Name":"Tinker Food","Price":300,"Stock":10}`
+	req := httptest.NewRequest(http.MethodPut, "/products/1", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	//для того чтобы chi.RouteContext был доступен в контексте запроса, нужно создать его вручную
+	//для этого используем chi.NewRouteContext() и добавляем параметр id
+	//затем с помощью context.WithValue добавляем chi.RouteContext в контекст
+	//это нужно для того чтобы в хендлере можно было получить id продукта из URL
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler := New(slog.Default(), mock)
+
+	handler.UpdateProduct(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected 200, got %d", w.Code)
+	}
 }
 
 func TestUpdateProduct_BadRequest(t *testing.T) {
 	// TODO: Написать Unit-тест для обновления продукта с невалидным JSON (400 Bad Request)
+	mock := &ProductsMock{
+		UpdateProductFunc: func(ctx context.Context, product models.Product) error {
+			return nil
+		},
+	}
+
+	payload := `{1}`
+	req := httptest.NewRequest(http.MethodPut, "/products/1", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	//для того чтобы chi.RouteContext был доступен в контексте запроса, нужно создать его вручную
+	//для этого используем chi.NewRouteContext() и добавляем параметр id
+	//затем с помощью context.WithValue добавляем chi.RouteContext в контекст
+	//это нужно для того чтобы в хендлере можно было получить id продукта из URL
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler := New(slog.Default(), mock)
+
+	handler.UpdateProduct(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("Expected 400, got %d", w.Code)
+	}
 }
 
 func TestUpdateProduct_Fail(t *testing.T) {
 	// TODO: Написать Unit-тест для обновления продукта при ошибке сервиса (500 Internal Server Error)
+	mock := &ProductsMock{
+		UpdateProductFunc: func(ctx context.Context, product models.Product) error {
+			return errors.New("DB error")
+		},
+	}
+
+	payload := `{"Name":"Tinker Food","Price":300,"Stock":10}`
+	req := httptest.NewRequest(http.MethodPut, "/products/1", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	//для того чтобы chi.RouteContext был доступен в контексте запроса, нужно создать его вручную
+	//для этого используем chi.NewRouteContext() и добавляем параметр id
+	//затем с помощью context.WithValue добавляем chi.RouteContext в контекст
+	//это нужно для того чтобы в хендлере можно было получить id продукта из URL
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler := New(slog.Default(), mock)
+
+	handler.UpdateProduct(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("Expected 500, got %d", w.Code)
+	}
 }
 
 // =======================
@@ -95,12 +232,72 @@ func TestUpdateProduct_Fail(t *testing.T) {
 
 func TestDeleteProduct_Success(t *testing.T) {
 	// TODO: Написать Unit-тест для удаления продукта (200 OK)
+	mock := &ProductsMock{
+		DeleteProductFunc: func(ctx context.Context, id int) error {
+			return nil
+		},
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, "/products/1", nil)
+
+	//делаем так же как и в UpdateProduct, чтобы chi.RouteContext был доступен в контексте запроса
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler := New(slog.Default(), mock)
+
+	handler.DeleteProduct(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected 200, got %d", w.Code)
+	}
 }
 
 func TestDeleteProduct_BadRequest(t *testing.T) {
 	// TODO: Написать Unit-тест для удаления продукта с пустым id (400 Bad Request)
+	mock := &ProductsMock{
+		DeleteProductFunc: func(ctx context.Context, id int) error {
+			return nil
+		},
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, "/products/1", nil)
+
+	//Удаляем проброс в контекст chi.RouteContext, чтобы id был пустым
+
+	w := httptest.NewRecorder()
+	handler := New(slog.Default(), mock)
+
+	handler.DeleteProduct(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("Expected 400, got %d", w.Code)
+	}
 }
 
 func TestDeleteProduct_Fail(t *testing.T) {
 	// TODO: Написать Unit-тест для удаления продукта при ошибке сервиса (500 Internal Server Error)
+	mock := &ProductsMock{
+		DeleteProductFunc: func(ctx context.Context, id int) error {
+			return errors.New("DB error")
+		},
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, "/products/1", nil)
+
+	//делаем так же как и в UpdateProduct, чтобы chi.RouteContext был доступен в контексте запроса
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler := New(slog.Default(), mock)
+
+	handler.DeleteProduct(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("Expected 500, got %d", w.Code)
+	}
 }

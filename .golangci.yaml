@@ -1,3 +1,7 @@
+run:
+  timeout: 2m
+  tests: true
+
 linters:
   enable:
     - unused
@@ -7,10 +11,6 @@ linters:
     - errcheck
     - ineffassign
     - gocyclo
-
-run:
-  timeout: 2m
-  tests: true
 
 issues:
   exclude-use-default: false
