@@ -94,7 +94,7 @@ func TestCreateProduct_BadRequest(t *testing.T) {
 		},
 	}
 
-	payload := `{1}`
+	payload := `{-5}`
 	req := httptest.NewRequest(http.MethodPost, "/products", strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
